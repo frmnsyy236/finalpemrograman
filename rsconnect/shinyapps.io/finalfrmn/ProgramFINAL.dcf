@@ -1,0 +1,12 @@
+name: ProgramFINAL
+title: ProgramFINAL
+username: finalfrmn
+account: finalfrmn
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 16153814
+bundleId: 11223626
+url: https://finalfrmn.shinyapps.io/ProgramFINAL/
+version: 1
+asMultiple: FALSE
+asStatic: FALSE
