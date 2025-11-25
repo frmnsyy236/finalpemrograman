@@ -284,6 +284,7 @@ ui <- bs4DashPage(
               ),
               column(
                 4,
+                4, offset = 4,
                 div(style="text-align:center; padding:20px;",
                     img(src="foto ke 2 .jpg", width="90%", style="margin-bottom:15px;"),
                     tags$h4("LUTFI ZHAFRAN"),
