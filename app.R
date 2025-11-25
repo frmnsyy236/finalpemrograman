@@ -38,7 +38,7 @@ safe_rename <- function(df, old, new) {
 color_map <- list(
   primary = "#ffc107", secondary = "#6c757d", info = "#17a2b8", success = "#28a745",    #warna untuk mengubah tampilan
   warning = "#f8f9fa", danger = "#dc3545", dark = "#343a40", light = "#007bff",
-  purple = "#6f42c1", orange = "#fd7e14", teal = "#20c997", pink = "#e83e8c"
+  purple = "#6f42c1", orange = "#fd7e14", teal = "#20c997", pink = "#e83e8c", terbaik ="#f5eded"
 )
 
 colorBoxInput <- function(id, label, colors) {
@@ -67,22 +67,32 @@ colorBoxInput <- function(id, label, colors) {
 # -------------------------------
 ui <- bs4DashPage(
   title = "Dashboard Penjualan Premium",
+  
   header = bs4DashNavbar(
     title = tags$div(
-      icon("chart-line"), 
-      " Dashboard Penjualan", 
-      style = "font-weight:700; font-size:20px;"
+      "Kelompok 2", 
+      style = "
+        font-weight: 700; 
+        font-size: 20px; 
+        display: flex; 
+        align-items: center; 
+        justify-content: center; 
+        padding-bottom: 25px;
+        border-bottom: 3px solid #000000;"
     )
   ),
+  
   sidebar = bs4DashSidebar(
     skin = "light",
     status = "primary",
     bs4SidebarMenu(
       bs4SidebarHeader("MENU UTAMA"),
       bs4SidebarMenuItem("Dashboard Penjualan", tabName = "data", icon = icon("table")),
-      bs4SidebarMenuItem("Analisis Penjualan", tabName = "analisis", icon = icon("chart-line"))
+      bs4SidebarMenuItem("Analisis Penjualan", tabName = "analisis", icon = icon("chart-line")),
+      bs4SidebarMenuItem("Profile team", tabName = "team", icon = icon("users"))
     )
   ),
+  
   controlbar = bs4DashControlbar(
     skin = "light",
     title = "Theme Customizer",
@@ -94,56 +104,27 @@ ui <- bs4DashPage(
       checkboxInput("sidebar_dark", "Mode Sidebar ", FALSE),
       colorBoxInput("navbar_color", "🎨 Warna Navbar", color_map),
       colorBoxInput("sidebar_color", "📌 Warna Sidebar", color_map),
-      #checkboxInput("sidebar_dark", "Mode Sidebar Gelap", FALSE),
       colorBoxInput("accent_color", "✨ Warna Aksen", color_map),
-      tags$hr(style = "margin:20px 0; border-top:2px solid #000000;"),
-      div(style = "padding:12px; background:#f8f9fa; border-radius:6px;",
-          tags$p(style = "font-size:13px; color:#666; margin:0; line-height:1.6;",
-                 icon("info-circle"), " Klik kotak warna untuk mengubah tema.",
-                 tags$br(),
-                 tags$small("💡 Tip: Coba kombinasi dengan Dark Mode!")
-          )
+      tags$hr(style="margin:20px 0; border-top:2px solid #000000;"),
+      div(
+        style="padding:12px; background:#f8f9fa; border-radius:6px;",
+        tags$p(style="font-size:13px; color:#666; margin:0; line-height:1.6;",
+               icon("info-circle"), " Klik kotak warna untuk mengubah tema.",
+               tags$br(),
+               tags$small("💡 Tip: Coba kombinasi dengan Dark Mode!")
+        )
       )
     )
   ),
+  
   body = bs4DashBody(
     useShinyjs(),
     uiOutput("ui_fresh_theme"),
-    tags$style(HTML("
-      .color-box.selected { 
-        border-color: #000 !important; 
-        box-shadow: 0 0 12px rgba(0,0,0,0.4) !important;
-        transform: scale(1.15) !important;
-      }
-      .color-box:hover {
-        transform: scale(1.08);
-        box-shadow: 0 4px 8px rgba(0,0,0,0.2) !important;
-      }
-      .info-box {
-        transition: all 0.3s ease;
-      }
-      .info-box:hover {
-        transform: translateY(-4px);
-        box-shadow: 0 8px 16px rgba(0,0,0,0.15);
-      }
-      .card {
-        transition: box-shadow 0.3s ease;
-      }
-      .card:hover {
-        box-shadow: 0 6px 20px rgba(0,0,0,0.12);
-      }
-      .btn-download {
-        margin: 8px 4px;
-        transition: all 0.3s ease;
-      }
-      .btn-download:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-      }
-    ")),
     
+    # ========== TAB ITEMS ==========
     bs4TabItems(
-      # DATA TAB
+      
+      # ================= TAB DATA =================
       bs4TabItem(
         tabName = "data",
         fluidRow(
@@ -152,6 +133,7 @@ ui <- bs4DashPage(
           valueBoxOutput("vbox_total_type", width = 3),
           valueBoxOutput("vbox_avg_harga", width = 3)
         ),
+        
         fluidRow(
           bs4Card(
             width = 12, 
@@ -159,19 +141,21 @@ ui <- bs4DashPage(
             status = "primary", 
             solidHeader = TRUE,
             collapsible = TRUE,
+            
             fileInput("file", "Pilih File CSV atau Excel", 
                       accept = c(".csv",".xlsx",".xls"),
                       buttonLabel = "Browse...",
                       placeholder = "Belum ada file yang dipilih"),
-            tags$div(style = "margin-top:12px;",
-                     tags$p(style = "color:#666; font-size:13px;",
+            
+            tags$div(style="margin-top:12px;",
+                     tags$p(style="color:#666; font-size:13px;",
                             icon("info-circle"), " Format yang didukung: CSV, XLSX, XLS",
                             tags$br(),
                             "📊 Pastikan file memiliki kolom: Merk, Type, Harga"
-                     )
-            )
+                     ))
           )
         ),
+        
         fluidRow(
           bs4Card(
             width = 12, 
@@ -179,18 +163,20 @@ ui <- bs4DashPage(
             status = "info", 
             solidHeader = TRUE,
             collapsible = TRUE,
-            div(style = "margin-bottom:12px;",
-                downloadButton("download_data", "Download Data", class = "btn-primary btn-download", icon = icon("download")),
-                actionButton("refresh_data", "Refresh", class = "btn-info btn-download", icon = icon("sync"))
+            div(style="margin-bottom:12px;",
+                downloadButton("download_data", "Download Data", class="btn-primary btn-download", icon=icon("download")),
+                actionButton("refresh_data", "Refresh", class="btn-info btn-download", icon=icon("sync"))
             ),
             DTOutput("tabelData")
           )
         )
       ),
       
-      # ANALISIS TAB
+      # ================= TAB ANALISIS =================
       bs4TabItem(
         tabName = "analisis",
+        
+        # ---------- KARTU MERK ----------
         fluidRow(
           bs4Card(
             width = 12,
@@ -198,25 +184,20 @@ ui <- bs4DashPage(
             status = "success", 
             solidHeader = TRUE,
             collapsible = TRUE,
+            
             fluidRow(
               column(6,
-                     div(style = "padding:12px;",
-                         tags$h5("📊 Grafik Interaktif", style = "font-weight:600; margin-bottom:16px;"),
-                         plotlyOutput("grafikMerkInteractive", height = "450px"),
-                         div(style = "margin-top:12px;",
-                             downloadButton("download_merk_table", "Download Data", class = "btn-success btn-sm", icon = icon("download"))
-                         )
-                     )
+                     plotlyOutput("grafikMerkInteractive", height="450px"),
+                     downloadButton("download_merk_table", "Download Data", class="btn-success btn-sm")
               ),
               column(6,
-                     div(style = "padding:12px;",
-                         tags$h5("📋 Tabel Detail", style = "font-weight:600; margin-bottom:16px;"),
-                         DTOutput("tabelMerk")
-                     )
+                     DTOutput("tabelMerk")
               )
             )
           )
         ),
+        
+        # ---------- DETAIL MERK & TYPE ----------
         fluidRow(
           bs4Card(
             width = 12,
@@ -224,35 +205,26 @@ ui <- bs4DashPage(
             status = "warning", 
             solidHeader = TRUE,
             collapsible = TRUE,
+            
             fluidRow(
               column(12,
-                     div(style = "background:#f8f9fa; padding:16px; border-radius:8px; margin-bottom:16px;",
-                         selectInput("pilihMerk", 
-                                     label = tags$div(icon("tag"), " Pilih Merk untuk Analisis:"), 
-                                     choices = NULL,
-                                     width = "100%")
-                     )
+                     selectInput("pilihMerk", label="Pilih Merk:", choices=NULL, width="100%")
               )
             ),
+            
             fluidRow(
               column(6,
-                     div(style = "padding:12px;",
-                         tags$h5("📈 Grafik Type", style = "font-weight:600; margin-bottom:16px;"),
-                         plotlyOutput("grafikTypeInteractive", height = "450px"),
-                         div(style = "margin-top:12px;",
-                             downloadButton("download_type_table", "Download Data", class = "btn-warning btn-sm", icon = icon("download"))
-                         )
-                     )
+                     plotlyOutput("grafikTypeInteractive", height="450px"),
+                     downloadButton("download_type_table", "Download Data", class="btn-warning btn-sm")
               ),
               column(6,
-                     div(style = "padding:12px;",
-                         tags$h5("📋 Tabel Detail Type", style = "font-weight:600; margin-bottom:16px;"),
-                         DTOutput("tabelType")
-                     )
+                     DTOutput("tabelType")
               )
             )
           )
         ),
+        
+        # ---------- TOP 5 ----------
         fluidRow(
           bs4Card(
             width = 12,
@@ -261,18 +233,62 @@ ui <- bs4DashPage(
             solidHeader = TRUE,
             collapsible = TRUE,
             collapsed = TRUE,
+            
             fluidRow(
-              column(6, 
-                     div(style = "padding:12px;",
-                         tags$h5("🏆 Top 5 Merk", style = "font-weight:600; text-align:center;"),
-                         plotlyOutput("comparisonMerk", height = "350px")
-                     )
+              column(6,
+                     plotlyOutput("comparisonMerk", height="350px")
               ),
-              column(6, 
-                     div(style = "padding:12px;",
-                         tags$h5("🏆 Top 5 Type", style = "font-weight:600; text-align:center;"),
-                         plotlyOutput("comparisonType", height = "350px")
-                     )
+              column(6,
+                     plotlyOutput("comparisonType", height="350px")
+              )
+            )
+          )
+        )
+      ),
+      
+      # ================= TAB TEAM =================
+      bs4TabItem(
+        tabName = "team",
+        fluidRow(
+          bs4Card(
+            width = 12,
+            title = tags$div(icon("users"), " Profile Team"),
+            status = "primary",
+            solidHeader = TRUE,
+            collapsible = TRUE,
+            
+            fluidRow(
+              column(
+                4,
+                div(style="text-align:center; padding:20px;",
+                    img(src="foto ke 1.jpg", width="90%", style="margin-bottom:15px;"),
+                    tags$h4("FIRMAN SYAH"),
+                    tags$p("Peran: Data Cleaning")
+                )
+              ),
+              column(
+                4,
+                div(style="text-align:center; padding:20px;",
+                    img(src="foto2.jpg", width="90%", style="margin-bottom:15px;"),
+                    tags$h4("MUH.WAHYUDI"),
+                    tags$p("Peran: Data Visualization")
+                )
+              ),
+              column(
+                4,
+                div(style="text-align:center; padding:20px;",
+                    img(src="foto ke 2 .jpg", width="90%", style="margin-bottom:15px;"),
+                    tags$h4("LUTFI ZHAFRAN"),
+                    tags$p("Peran: App Developer")
+                )
+              ),
+              column(
+                4,
+                div(style="text-align:center; padding:20px;",
+                    img(src="foto ke 2 .jpg", width="90%", style="margin-bottom:15px;"),
+                    tags$h4("LUTFI ZHAFRAN"),
+                    tags$p("Peran: App Developer")
+                )
               )
             )
           )
@@ -280,23 +296,19 @@ ui <- bs4DashPage(
       )
     )
   ),
+  
   footer = bs4DashFooter(
-    left = tags$div(
-      "Dashboard Penjualan Motor Second",
-      style = "color:#000000;"
-    ),
-    right = tags$div(
-      icon("code"), "Kelompok 2",
-      style = "color:#000000;"
-    )
+    left = "Dashboard Penjualan Motor Second",
+    right = tagList(icon("code"), "Kelompok 2")
   )
 )
+
 
 # -------------------------------
 # SERVER
 # -------------------------------
 server <- function(input, output, session) {
-  sel <- reactiveValues(nav = "primary", side = "primary", accent = "primary", side_dark = FALSE)
+  sel <- reactiveValues(nav = "primary", side = "terbaik", accent = "primary", side_dark = FALSE)
   
   for (clr in names(color_map)) {
     local({

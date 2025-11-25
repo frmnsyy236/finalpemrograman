@@ -9,7 +9,10 @@ library(readr)
 library(readxl)
 library(plotly)
 library(scales)
+
+# -------------------------------
 # Helper Functions
+# -------------------------------
 format_rupiah <- function(x) {
   paste0("Rp ", format(round(x, 0), big.mark = ".", decimal.mark = ","))
 }

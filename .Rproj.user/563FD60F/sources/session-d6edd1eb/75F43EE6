@@ -1,27 +1,25 @@
 {
-    "id": "34FA05BC",
+    "id": "75F43EE6",
     "path": null,
     "project_path": null,
     "type": "r_source",
-    "hash": "524932157",
+    "hash": "3393831964",
     "contents": "",
     "dirty": true,
-    "created": 1763976536777.0,
+    "created": 1764041643882.0,
     "source_on_save": false,
-    "relative_order": 3,
+    "relative_order": 8,
     "properties": {
-        "tempName": "Untitled1",
+        "tempName": "Untitled6",
         "source_window_id": "",
-        "Source": "Source",
-        "cursorPosition": "9,15",
-        "scrollLine": "34"
+        "Source": "Source"
     },
     "folds": "",
-    "lastKnownWriteTime": 3255307777713450285,
+    "lastKnownWriteTime": 1764041605,
     "encoding": "",
     "collab_server": "",
     "source_window": "",
-    "last_content_update": 1763976563453,
+    "last_content_update": 1764041645793,
     "read_only": false,
     "read_only_alternatives": []
 }

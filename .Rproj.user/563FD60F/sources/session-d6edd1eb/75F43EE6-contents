@@ -1,0 +1,138 @@
+bs4TabItems(
+  # DATA TAB
+  bs4TabItem(
+    tabName = "data",
+    fluidRow(
+      valueBoxOutput("vbox_total_records", width = 3),
+      valueBoxOutput("vbox_total_merk", width = 3),
+      valueBoxOutput("vbox_total_type", width = 3),
+      valueBoxOutput("vbox_avg_harga", width = 3)
+    ),
+    fluidRow(
+      bs4Card(
+        width = 12, 
+        title = tags$div(icon("upload"), " Upload File Data Penjualan"), 
+        status = "primary", 
+        solidHeader = TRUE,
+        collapsible = TRUE,
+        fileInput("file", "Pilih File CSV atau Excel", 
+                  accept = c(".csv",".xlsx",".xls"),
+                  buttonLabel = "Browse...",
+                  placeholder = "Belum ada file yang dipilih"),
+        tags$div(style = "margin-top:12px;",
+                 tags$p(style = "color:#666; font-size:13px;",
+                        icon("info-circle"), " Format yang didukung: CSV, XLSX, XLS",
+                        tags$br(),
+                        "📊 Pastikan file memiliki kolom: Merk, Type, Harga"
+                 )
+        )
+      )
+    ),
+    fluidRow(
+      bs4Card(
+        width = 12, 
+        title = tags$div(icon("table"), " Preview Data"), 
+        status = "info", 
+        solidHeader = TRUE,
+        collapsible = TRUE,
+        div(style = "margin-bottom:12px;",
+            downloadButton("download_data", "Download Data", class = "btn-primary btn-download", icon = icon("download")),
+            actionButton("refresh_data", "Refresh", class = "btn-info btn-download", icon = icon("sync"))
+        ),
+        DTOutput("tabelData")
+      )
+    )
+  ),
+  
+  # ANALISIS TAB
+  bs4TabItem(
+    tabName = "analisis",
+    fluidRow(
+      bs4Card(
+        width = 12,
+        title = tags$div(icon("chart-bar"), " Analisis Penjualan per Merk"),
+        status = "success", 
+        solidHeader = TRUE,
+        collapsible = TRUE,
+        fluidRow(
+          column(6,
+                 div(style = "padding:12px;",
+                     tags$h5("📊 Grafik Interaktif", style = "font-weight:600; margin-bottom:16px;"),
+                     plotlyOutput("grafikMerkInteractive", height = "450px"),
+                     div(style = "margin-top:12px;",
+                         downloadButton("download_merk_table", "Download Data", class = "btn-success btn-sm", icon = icon("download"))
+                     )
+                 )
+          ),
+          column(6,
+                 div(style = "padding:12px;",
+                     tags$h5("📋 Tabel Detail", style = "font-weight:600; margin-bottom:16px;"),
+                     DTOutput("tabelMerk")
+                 )
+          )
+        )
+      )
+    ),
+    fluidRow(
+      bs4Card(
+        width = 12,
+        title = tags$div(icon("filter"), " Analisis Detail per Merk dan Type"),
+        status = "warning", 
+        solidHeader = TRUE,
+        collapsible = TRUE,
+        fluidRow(
+          column(12,
+                 div(style = "background:#f8f9fa; padding:16px; border-radius:8px; margin-bottom:16px;",
+                     selectInput("pilihMerk", 
+                                 label = tags$div(icon("tag"), " Pilih Merk untuk Analisis:"), 
+                                 choices = NULL,
+                                 width = "100%")
+                 )
+          )
+        ),
+        fluidRow(
+          column(6,
+                 div(style = "padding:12px;",
+                     tags$h5("📈 Grafik Type", style = "font-weight:600; margin-bottom:16px;"),
+                     plotlyOutput("grafikTypeInteractive", height = "450px"),
+                     div(style = "margin-top:12px;",
+                         downloadButton("download_type_table", "Download Data", class = "btn-warning btn-sm", icon = icon("download"))
+                     )
+                 )
+          ),
+          column(6,
+                 div(style = "padding:12px;",
+                     tags$h5("📋 Tabel Detail Type", style = "font-weight:600; margin-bottom:16px;"),
+                     DTOutput("tabelType")
+                 )
+          )
+        )
+      )
+    ),
+    fluidRow(
+      bs4Card(
+        width = 12,
+        title = tags$div(icon("balance-scale"), " Perbandingan Top 5"),
+        status = "danger",
+        solidHeader = TRUE,
+        collapsible = TRUE,
+        collapsed = TRUE,
+        fluidRow(
+          column(6, 
+                 div(style = "padding:12px;",
+                     tags$h5("🏆 Top 5 Merk", style = "font-weight:600; text-align:center;"),
+                     plotlyOutput("comparisonMerk", height = "350px")
+                 )
+          ),
+          column(6, 
+                 div(style = "padding:12px;",
+                     tags$h5("🏆 Top 5 Type", style = "font-weight:600; text-align:center;"),
+                     plotlyOutput("comparisonType", height = "350px")
+                 )
+          )
+        )
+      )
+    )
+  )
+)
+),
