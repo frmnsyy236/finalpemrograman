@@ -15,14 +15,14 @@ library(fresh)
 library(ggplot2)
 library(scales)
 library(RColorBrewer)
-library(rlang) # PENTING: Menambahkan rlang untuk operator %||%
+library(rlang) 
 
 # -----------------------
 # CONFIG
 # -----------------------
 DB_FILE <- "users.sqlite" 
-FREE_UPLOADS <- 3 
-APP_TITLE <- "Kelompok 2r"
+FREE_UPLOADS <- 0 
+APP_TITLE <- "KELOMPOK 2"
 
 # -----------------------
 # DATABASE INIT & HELPERS
@@ -119,16 +119,13 @@ reset_uploads_used <- function(email) {
 delete_user_by_email <- function(email) {
   con <- db_connect(); on.exit(dbDisconnect(con), add = TRUE)
   
-  # 1. Cek peran user yang akan dihapus
   user_to_delete <- get_user_by_email(email)
   if (is.null(user_to_delete)) return("User not found")
   
-  # 2. Safety Check: Mencegah penghapusan akun admin
   if (identical(user_to_delete$role, "admin")) {
     return("Cannot delete admin account")
   }
   
-  # 3. Eksekusi penghapusan
   tryCatch({
     dbExecute(con, "DELETE FROM users WHERE email = ?", params = list(email))
     return("Success")
@@ -218,88 +215,58 @@ colorBoxInput <- function(id, label, colors) {
 # -------------------------------
 # UI
 # -------------------------------
-library(bs4Dash)      # pastikan sudah ter-load
-library(shiny)
-library(waiter)
-library(shinyjs)
-
 ui <- bs4DashPage(
-  title = "KELOMPOK 2",
-  fullscreen = TRUE,
-  preloader = list(
-    html = tagList(spin_1(), "Loading ..."),
-    color = "#343a40"
-  )
-  dark = TRUE,
-  help = FALSE,
-  scrollToTop = TRUE,
+  title = APP_TITLE,
   
-  # ----------------- HEADER -----------------
   header = bs4DashNavbar(
-    title = dashboardBrand(
-      title = "KELOMPOK 2",
-      color = "primary",
-      href = "https://github.com/frmnsyy236/finalpemrograman/blob/main/app.R",
-      image = "https://adminlte.io/themes/v3/dist/img/user2-160x160.jpg",
-      opacity = 1
+    title = tags$div(
+      APP_TITLE,
+      style = "font-weight:700; font-size:20px; display:flex; align-items:center; justify-content:center; padding-bottom:25px; border-bottom:3px solid #000000;"
     ),
-    
-    leftUi = tagList(
-      dropdownMenu(
-        type = "notifications",
-        badgeStatus = "info",
-        headerText = "Notifikasi",
-        notificationItem(
-          text = "Error!",
-          status = "danger"
-        )
-        
-      ),
-      dropdownMenu(
-        type = "tasks",
-        badgeStatus = "info",
-        headerText = "Tasks",
-        taskItem(
-          text = "My progress",
-          color = "orange",
-          value = 10
-        )
-        
-      )
-    ),
-    
-    rightUi = tagList(
-      # pesan / messages dropdown
-      dropdownMenu(
-        type = "messages",
-        badgeStatus = "danger",
-        messageItem(
-          from = "Divad Nojnarg",
-          message = "message 1",
-          time = "today",
-          icon = icon("envelope")
-        )
-      ),
-      # tombol Login/Register (di-render di server)
-      uiOutput("auth_buttons_ui")
-    )
+    rightUi = uiOutput("auth_buttons_ui")
   ),
   
-  # ----------------- SIDEBAR -----------------
   sidebar = bs4DashSidebar(
     skin = "light",
     status = "primary",
     bs4SidebarMenu(
+      
       bs4SidebarHeader("MENU UTAMA"),
-      bs4SidebarMenuItem("Account/Upload", tabName = "home", icon = icon("user")),
-      bs4SidebarMenuItem("Analisis Penjualan", tabName = "analisis", icon = icon("chart-line")),
+      bs4SidebarMenuItem("Dashboard", tabName = "dashboard", icon = icon("home")),
+      
+      bs4SidebarHeader("ANALISIS"),
+      bs4SidebarMenuItem("Grafik", tabName = "grafik", icon = icon("chart-area")),
+      
+      bs4SidebarHeader("LAINNYA"),
       bs4SidebarMenuItem("Profile Team", tabName = "team", icon = icon("users")),
-      # dynamic admin menu (renderSidebarMenu / renderUI from server)
-      uiOutput("admin_panel_menu_ui")
+      
+      uiOutput("admin_panel_menu_ui") 
     )
   ),
   
-  # ----------------- BODY -----------------
+  controlbar = bs4DashControlbar(
+    skin = "light",
+    title = "Theme Customizer",
+    bs4Card(
+      title = tags$div(icon("palette"), "COSTUM TEMA"),
+      solidHeader = TRUE,
+      width = 12,
+      status = "primary",
+      checkboxInput("sidebar_dark", "Mode Sidebar ", FALSE),
+      colorBoxInput("navbar_color", "🎨 Warna Navbar", color_map),
+      colorBoxInput("sidebar_color", "📌 Warna Sidebar", color_map),
+      colorBoxInput("accent_color", "✨ Warna Aksen", color_map),
+      tags$hr(style="margin:20px 0; border-top:2px solid #000000;"),
+      div(style="padding:12px; background:#f8f9fa; border-radius:6px;",
+          tags$p(style="font-size:13px; color:#666; margin:0; line-height:1.6;",
+                 icon("info-circle"), " Klik kotak warna untuk mengubah tema.",
+                 tags$br(),
+                 tags$small("💡 Tip: Coba kombinasi dengan Dark Mode!")
+          )
+      )
+    )
+  ),
+  
   body = bs4DashBody(
     useShinyjs(),
     use_waiter(),
@@ -317,65 +284,141 @@ ui <- bs4DashPage(
     ),
     
     bs4TabItems(
-      # HOME
+      
+      # ================= TAB HOME (ACCOUNT/UPLOAD) =================
       bs4TabItem(
-        tabName = "home",
+        tabName = "dashboard",
         fluidRow(
           bs4Card(width = 12, title = "Status Account", status = "info", solidHeader = TRUE,
-                  uiOutput("status_card_ui"))
+                  uiOutput("status_card_ui")
+          )
         ),
         fluidRow(
           bs4Card(width = 6, title = "Upload Data Premium", status = "primary", solidHeader = TRUE,
-                  uiOutput("upload_ui")),
+                  uiOutput("upload_ui")
+          ),
           bs4Card(width = 6, title = "Account Summary", status = "success", solidHeader = TRUE,
-                  uiOutput("summary_ui"))
+                  uiOutput("summary_ui")
+          )
+        ),
+        fluidRow(
+          # Insight otomatis
+          box(
+            width = 12,
+            title = "Insight Otomatis",
+            status = "primary",
+            solidHeader = TRUE,
+            uiOutput("insightBox")
+          )
         )
       ),
       
-      # ANALISIS
+      # ================= TAB ANALISIS =================
       bs4TabItem(
-        tabName = "analisis",
+        tabName = "grafik",
+        # --- Value Boxes Baru (2 baris) ---
         fluidRow(
           valueBoxOutput("vbox_total_records", width = 3),
           valueBoxOutput("vbox_total_merk", width = 3),
           valueBoxOutput("vbox_total_type", width = 3),
-          valueBoxOutput("vbox_avg_harga", width = 3)
+          valueBoxOutput("vbox_total_sales", width = 3) # BARU: Total Sales
         ),
         fluidRow(
+          valueBoxOutput("vbox_avg_harga", width = 3)
+          # Placeholder untuk Value Box lain jika diperlukan
+        ),
+        # ----------------------------------
+        
+        fluidRow(
           bs4Card(
-            width = 12,
-            title = tags$div(icon("table"), " Preview Data"),
-            status = "info",
+            width = 12,  
+            title = tags$div(icon("table"), " Preview Data"),  
+            status = "info",  
             solidHeader = TRUE,
             collapsible = TRUE,
             div(style="margin-bottom:12px;",
-                downloadButton("download_data", "Download Data", class="btn-primary btn-download"),
-                actionButton("refresh_data", "Refresh", class="btn-info btn-download")
+                downloadButton("download_data", "Download Data", class="btn-primary btn-download", icon=icon("download")),
+                actionButton("refresh_data", "Refresh", class="btn-info btn-download", icon=icon("sync"))
             ),
             DTOutput("tabelData")
           )
         ),
+        
         fluidRow(
           bs4Card(
             width = 12,
             title = tags$div(icon("chart-bar"), " Analisis Penjualan per Merk"),
-            status = "success",
+            status = "success",  
             solidHeader = TRUE,
             collapsible = TRUE,
             fluidRow(
               column(6,
-                     selectInput("pilih_grafik_merk", "Pilih Tipe Grafik:",
-                                 choices = c("Bar"="bar","Line"="line","Pie"="pie"), selected = "bar"),
+                     selectInput("pilih_grafik_merk", "Pilih Tipe Grafik:", choices = c("Bar"="bar","Line"="line","Pie"="pie"), selected="bar"),
                      plotlyOutput("grafikMerkInteractive", height="450px"),
                      downloadButton("download_merk_table", "Download Data", class="btn-success btn-sm")
               ),
               column(6, DTOutput("tabelMerk"))
             )
           )
+        ),
+        
+        fluidRow(
+          bs4Card(
+            width = 12,
+            title = tags$div(icon("filter"), " Analisis Detail per Merk dan Type"),
+            status = "warning",
+            solidHeader = TRUE,
+            collapsible = TRUE,
+            fluidRow(
+              column(6,
+                     selectInput("pilihMerk", "Pilih Merk:", choices=NULL, width="100%"),
+                     selectInput("pilih_grafik_type", "Pilih Tipe Grafik:", choices = c("Bar"="bar","Line"="line","Pie"="pie"), selected="bar")
+              )
+            ),
+            fluidRow(
+              column(6, plotlyOutput("grafikTypeInteractive", height="450px"),
+                     downloadButton("download_type_table", "Download Data", class="btn-warning btn-sm")),
+              column(6, DTOutput("tabelType"))
+            )
+          )
+        ),
+        
+        # --- BARU: Card Box Plot ---
+        fluidRow(
+          bs4Card(
+            width = 12,
+            title = tags$div(icon("chart-pie"), " Analisis Distribusi Harga (Box Plot)"),
+            status = "info",
+            solidHeader = TRUE,
+            collapsible = TRUE,
+            plotlyOutput("boxPlotHarga", height="400px"),
+            tags$small(style="color:#666; margin-top:10px; display:block;", 
+                       icon("info-circle"), " Grafik ini menunjukkan median (garis tengah), quartil, dan outlier (titik) harga jual setiap merek."
+            )
+          )
+        ),
+        # --------------------------
+        
+        fluidRow(
+          bs4Card(
+            width = 12,
+            title = tags$div(icon("balance-scale"), " Perbandingan Top 5"),
+            status = "danger",
+            solidHeader = TRUE,
+            collapsible = TRUE,
+            collapsed = TRUE,
+            fluidRow(
+              column(6,
+                     selectInput("pilih_grafik_top5", "Pilih Tipe Grafik:", choices = c("Bar"="bar","Pie"="pie"), selected="bar"),
+                     plotlyOutput("comparisonMerk", height="350px")
+              ),
+              column(6, plotlyOutput("comparisonType", height="350px"))
+            )
+          )
         )
       ),
       
-      # ADMIN (dynamic show only if admin)
+      # ================= TAB ADMIN =================
       bs4TabItem(
         tabName = "admin",
         fluidRow(
@@ -405,7 +448,7 @@ ui <- bs4DashPage(
         )
       ),
       
-      # TEAM
+      # ================= TAB TEAM =================
       bs4TabItem(
         tabName = "team",
         fluidRow(
@@ -418,25 +461,59 @@ ui <- bs4DashPage(
             fluidRow(
               column(4,
                      div(style="text-align:center; padding:20px;",
-                         img(src="foto ke 1.jpg", width="90%"),
-                         tags$h4("FIRMAN SYAH"),
-                         tags$p("Peran: Data Cleaning")
-                     )
-              ),
+                         img(src="foto ke 1.jpg", width="90%", style="margin-bottom:15px;"),
+                         tags$h4("FIRMAN SYAH"), 
+                         tags$p("Peran: Data Cleaning"),
+                         
+                         tags$a(
+                           href = "https://wa.me/6287726993572?text=Halo%20saya%20tertarik%20untuk%20membeli%20stars%20di%20Dashboard%20Penjualan?",
+                           target = "_blank",
+                           class = "btn btn-success btn-sm",
+                           icon("whatsapp"), " Beli Stars (WhatsApp)"
+                         )
+                     )),
               column(4,
                      div(style="text-align:center; padding:20px;",
-                         img(src="foto2.jpg", width="90%"),
-                         tags$h4("MUH. WAHYUDI"),
-                         tags$p("Peran: Data Visualization")
-                     )
-              ),
+                         img(src="foto2.jpg", width="90%", style="margin-bottom:15px;"),
+                         tags$h4("MUH.WAHYUDI"), 
+                         tags$p("Peran: Data Visualization"),
+                         
+                         tags$a(
+                           href =  "https://wa.me/6287846327517?text=Halo%20saya%20tertarik%20untuk%20membeli%20stars%20di%20Dashboard%20Penjualan?",
+                           target = "_blank",
+                           class = "btn btn-success btn-sm",
+                           icon("whatsapp"), " Beli Stars (WhatsApp)"
+                         )
+                         
+                     )),
               column(4,
                      div(style="text-align:center; padding:20px;",
-                         img(src="foto ke 2 .jpg", width="90%"),
-                         tags$h4("LUTFI ZHAFRAN"),
-                         tags$p("Peran: App Developer")
-                     )
-              )
+                         img(src="foto ke 2 .jpg", width="90%", style="margin-bottom:15px;"),
+                         tags$h4("LUTFI ZHAFRAN"), 
+                         tags$p("Peran: App Developer"),
+                         
+                         tags$a(
+                           href =  "https://wa.me/6287726993572?text=Halo%20saya%20tertarik%20untuk%20membeli%20stars%20di%20Dashboard%20Penjualan?",
+                           target = "_blank",
+                           class = "btn btn-success btn-sm",
+                           icon("whatsapp"), " Beli Stars (WhatsApp)"
+                         )
+                         
+                     )),
+              column( width = 4,
+                      offset = 4,
+                      div(style="text-align:center; padding:20px;",
+                          img(src="foto ke 3.jpg", width="90%", style="margin-bottom:15px;"),
+                          tags$h4("Nur Badilla Zayyan"), 
+                          tags$p("Peran: App Developer"),
+                          
+                          tags$a(
+                            href =  "https://wa.me/6287726993572?text=Halo%20saya%20tertarik%20untuk%20membeli%20stars%20di%20Dashboard%20Penjualan?",
+                            target = "_blank",
+                            class = "btn btn-success btn-sm",
+                            icon("whatsapp"), " Beli Stars (WhatsApp)"
+                          )
+                      ))
             )
           )
         )
@@ -444,37 +521,11 @@ ui <- bs4DashPage(
     )
   ),
   
-  # ----------------- CONTROLBAR -----------------
-  controlbar = bs4DashControlbar(
-    skin = "light",
-    title = "Theme Customizer",
-    bs4Card(
-      title = tags$div(icon("palette"), "COSTUM TEMA"),
-      solidHeader = TRUE,
-      width = 12,
-      status = "primary",
-      checkboxInput("sidebar_dark", "Mode Sidebar", FALSE),
-      colorBoxInput("navbar_color", "🎨 Warna Navbar", color_map),
-      colorBoxInput("sidebar_color", "📌 Warna Sidebar", color_map),
-      colorBoxInput("accent_color", "✨ Warna Aksen", color_map),
-      tags$hr(style="margin:20px 0; border-top:2px solid #000000;"),
-      div(style="padding:12px; background:#f8f9fa; border-radius:6px;",
-          tags$p(style="font-size:13px; color:#666; margin:0; line-height:1.6;",
-                 icon("info-circle"), " Klik kotak warna untuk mengubah tema.",
-                 tags$br(),
-                 tags$small("💡 Tip: Coba kombinasi dengan Dark Mode!")
-          )
-      )
-    )
-  ),
-  
-  # ----------------- FOOTER -----------------
   footer = bs4DashFooter(
-    left = "Dashboard Penjualan Motor Second",
+    left = "Dashboard Analisis Penjualan",
     right = tagList(icon("code"), "Kelompok 2")
   )
 )
-
 
 # -----------------------
 # SERVER
@@ -485,9 +536,10 @@ server <- function(input, output, session) {
   waiter_hide()  
   
   user_session <- reactiveValues(logged_in = FALSE, email = NULL, role = NULL)
-  rv <- reactiveValues(data = NULL, admin_selected_email = NULL)
+  rv <- reactiveValues(data = NULL, admin_selected_email = NULL,
+                       user_update_trigger = 0) 
   
-  # Logika untuk menampilkan menu Admin Panel (BARU)
+  # Logika untuk menampilkan menu Admin Panel
   output$admin_panel_menu_ui <- renderUI({
     if (isTRUE(user_session$logged_in) && identical(user_session$role, "admin")) {
       bs4SidebarMenuItem("Admin Panel", tabName = "admin", icon = icon("user-shield"))
@@ -495,8 +547,63 @@ server <- function(input, output, session) {
       NULL
     }
   })
+  # --- DATA PENJUALAN (letakkan di bagian ini) ---
+  data_sales <- reactive({
+    req(rv$data)
+    rv$data
+  })
   
-  # -------- Theme Selector --------
+  # --- INSIGHT OTOMATIS (LETakkan setelah data_sales()) ---
+  output$insightBox <- renderUI({
+    req(data_sales())
+    
+    df <- data_sales()
+    
+    total_penjualan <- sum(df$Harga, na.rm = TRUE)
+    rata2_harga     <- mean(df$Harga, na.rm = TRUE)
+    merk_terbanyak  <- names(sort(table(df$Merk), decreasing = TRUE))[1]
+    type_termahal   <- df$Type[which.max(df$Harga)]
+    
+    box(
+      width = 12,
+      status = "success",
+      solidHeader = TRUE,
+      title = "Insight Otomatis",
+      
+      tags$ul(
+        tags$li(paste("Total nilai penjualan:", scales::comma(total_penjualan))),
+        tags$li(paste("Rata-rata harga:", scales::comma(rata2_harga))),
+        tags$li(paste("Merk paling banyak terjual:", merk_terbanyak)),
+        tags$li(paste("Type harga tertinggi:", type_termahal)),
+        tags$li(paste("Jumlah data (observations):", nrow(df)))
+      ),
+      
+      tags$h5("Distribusi Penjualan per Merk"),
+      plotlyOutput("insight_bar", height = "680px"),
+      plotlyOutput("insight_hist", height = "380px")
+      
+    )
+  })
+  output$insight_bar <- renderPlot({
+    req(data_sales())
+    df <- data_sales()
+    
+    freq <- sort(table(df$Merk), decreasing = TRUE)
+    
+    barplot(
+      freq,
+      las = 2,
+      main = "",
+      ylab = "Jumlah",
+      xlab = "",
+      cex.names = 1.3,   # ukuran teks nama merk
+      cex.axis = 1.2,    # ukuran angka axis
+      cex.lab  = 1.3     # ukuran label sumbu
+    )
+  })
+  
+  
+  # -------- Theme Selector (Tidak berubah) --------
   sel <- reactiveValues(nav = "primary", side = "terbaik", accent = "primary", side_dark = FALSE)
   
   for(clr in names(color_map)){
@@ -507,6 +614,28 @@ server <- function(input, output, session) {
       observeEvent(input[[paste0("accent_color_",color_key)]], { sel$accent <- color_key }, ignoreInit = TRUE)
     })
   }
+  output$insight_bar <- renderPlotly({
+    req(data_sales())
+    
+    df <- data_sales()
+    df_summary <- df %>% 
+      dplyr::count(Merk, name = "Jumlah")
+    
+    plot_ly(
+      data = df_summary,
+      x = ~Merk,
+      y = ~Jumlah,
+      type = "bar",
+      hoverinfo = "text",
+      text = ~paste("Merk:", Merk, "<br>Jumlah:", Jumlah)
+    ) %>% 
+      layout(
+        xaxis = list(title = "Merk"),
+        yaxis = list(title = "Jumlah Terjual"),
+        margin = list(l = 40, r = 20, b = 40, t = 10)
+      )
+  })
+  
   
   observeEvent(input$sidebar_dark, { sel$side_dark <- isTRUE(input$sidebar_dark) }, ignoreInit = TRUE)
   
@@ -537,8 +666,9 @@ server <- function(input, output, session) {
     runjs(sprintf("$('#%s').addClass('selected');", paste0("sidebar_color_", sel$side)))
     runjs(sprintf("$('#%s').addClass('selected');", paste0("accent_color_", sel$accent)))
   })
+  # ------------------------------------------------
   
-  # AUTH UI (top-right)
+  # AUTH UI
   output$auth_buttons_ui <- renderUI({
     if (!user_session$logged_in) {
       tagList(
@@ -553,7 +683,7 @@ server <- function(input, output, session) {
     }
   })
   
-  # Login modal
+  # Login/Register Modals & Logic (Tidak Berubah)
   observeEvent(input$btn_show_login, {
     showModal(modalDialog(
       title = "Login",
@@ -564,7 +694,6 @@ server <- function(input, output, session) {
     ))
   })
   
-  # Register modal
   observeEvent(input$btn_show_register, {
     showModal(modalDialog(
       title = "Register",
@@ -575,14 +704,10 @@ server <- function(input, output, session) {
     ))
   })
   
-  # perform register
   observeEvent(input$btn_register, {
     req(input$reg_email, input$reg_password)
     removeModal()
-    
-    # Otomatis memberikan 3 Bintang
     ok <- create_user(input$reg_email, input$reg_password, initial_stars = 3) 
-    
     if (isTRUE(ok)) {
       shinyjs::alert("Registrasi berhasil. Silakan login. Anda mendapatkan 3 Stars gratis.")
     } else {
@@ -590,7 +715,6 @@ server <- function(input, output, session) {
     }
   })
   
-  # perform login
   observeEvent(input$btn_login, {
     req(input$login_email, input$login_password)
     removeModal()
@@ -606,24 +730,25 @@ server <- function(input, output, session) {
       showNotification(paste("Berhasil login:", user$email), type = "message")
       
       output$admin_users_dt <- renderDT({ datatable(fetch_all_users(), selection = "single", options = list(pageLength = 10, scrollX = TRUE)) })
+      # Panggil renderUI setelah login
       output$status_card_ui <- renderUI({ status_card_ui_func() })
       output$summary_ui <- renderUI({ summary_ui_func() })
     }
   })
   
-  # logout
   observeEvent(input$btn_logout, {
     user_session$logged_in <- FALSE
     user_session$email <- NULL
     user_session$role  <- NULL
-    rv$data <- NULL # Data direset
+    rv$data <- NULL 
     showNotification("Anda telah logout.", type = "message")
     
     output$admin_users_dt <- renderDT({ datatable(data.frame(Msg = "Hanya admin dapat melihat tabel ini"), options = list(dom = 't')) })
   })
   
-  # Status Card UI builder
-  status_card_ui_func <- function() {
+  # Status Card UI builder (Ubah menjadi reactive)
+  status_card_ui_func <- reactive({
+    rv$user_update_trigger 
     if (!user_session$logged_in) {
       return(tagList(tags$h4("Belum login"), tags$p("Silakan login atau daftar terlebih dahulu.")))
     }
@@ -638,12 +763,11 @@ server <- function(input, output, session) {
                if (user$role == "admin") tags$p(tags$em("Anda login sebagai admin."))
       )
     )
-  }
+  })
   
-  output$status_card_ui <- renderUI({ status_card_ui_func() })
-  
-  # Summary UI builder
-  summary_ui_func <- function() {
+  # Summary UI builder (Ubah menjadi reactive)
+  summary_ui_func <- reactive({
+    rv$user_update_trigger 
     if (!user_session$logged_in) return(tags$p("Login untuk melihat ringkasan akun."))
     user <- get_user_by_email(user_session$email)
     if (is.null(user)) return(tags$p("User tidak ditemukan"))
@@ -655,8 +779,10 @@ server <- function(input, output, session) {
       tags$p(strong("Uploads used:"), user$uploads_used),
       actionButton("btn_demo_reset", "Reset Uploads (Demo only)", class = "btn-link")
     )
-  }
+  })
   
+  # Panggil renderUI menggunakan fungsi reactive yang baru
+  output$status_card_ui <- renderUI({ status_card_ui_func() })
   output$summary_ui <- renderUI({ summary_ui_func() })
   
   # demo reset
@@ -664,15 +790,15 @@ server <- function(input, output, session) {
     req(user_session$logged_in)
     if (user_session$role == "admin" || user_session$email == "demo@local") {
       reset_uploads_used(user_session$email)
+      # Pemicu pembaruan UI setelah reset
+      rv$user_update_trigger <- rv$user_update_trigger + 1 
       showNotification("Uploads used direset (0).", type = "message")
-      output$status_card_ui <- renderUI({ status_card_ui_func() })
-      output$summary_ui <- renderUI({ summary_ui_func() })
     } else {
       showNotification("Aksi tidak diizinkan.", type = "error")
     }
   })
   
-  # UPLOAD UI
+  # UPLOAD UI (Tidak Berubah)
   output$upload_ui <- renderUI({
     if (!user_session$logged_in) return(tags$p("Silakan login untuk mengakses fitur upload."))
     user <- get_user_by_email(user_session$email)
@@ -683,10 +809,35 @@ server <- function(input, output, session) {
     }
     if (disable_upload) {
       tagList(
-        tags$p("Anda telah menggunakan 3 upload gratis dan saldo bintang habis."),
-        actionButton("btn_contact_admin", "Hubungi Admin", class = "btn-warning")
+        tags$h4("Akses Upload Terkunci"),
+        tags$p("Anda sudah menggunakan 3 upload gratis dan saldo bintang Anda habis."),
+        tags$p("Silakan beli paket premium untuk melanjutkan."),
+        
+        tags$h4("Harga Paket Premium"),
+        tags$ul(
+          tags$li("Paket Premium 1 Bulan — Rp 15.000"),
+          tags$li("Paket Premium 3 Bulan — Rp 35.000"),
+          tags$li("Paket Premium 1 Tahun — Rp 100.000")
+        ),
+        
+        tags$hr(),
+        tags$h4("Metode Pembayaran"),
+        
+        tags$p(strong("DANA / OVO / Transfer Bank")),
+        tags$p("0877-2699-3572 (Firmansyah)"),
+        
+        tags$hr(),
+        tags$p("Setelah melakukan pembayaran, kirim bukti transaksi untuk aktivasi premium."),
+        
+        tags$a(
+          href = "https://wa.me/6287726993572?text=Halo%20Admin,%20saya%20ingin%20aktifkan%20premium.%20Saya%20sudah%20melakukan%20pembayaran.%20Berikut%20buktinya:",
+          target = "_blank",
+          class = "btn btn-success btn-lg",
+          "Kirim Bukti Pembayaran via WhatsApp"
+        )
       )
-    } else {
+    }
+    else {
       tagList(
         fileInput("file_input_premium", "Pilih file (CSV / XLSX)", accept = c(".csv", ".xlsx", ".xls")),
         actionButton("btn_do_upload", "Upload & Proses", class = "btn-primary"),
@@ -700,7 +851,7 @@ server <- function(input, output, session) {
     showModal(modalDialog(title = "Hubungi Admin", "Hubungi admin lewat email: admin@local (demo).", easyClose = TRUE))
   })
   
-  # handle upload action
+  # handle upload action (Logika Bintang sudah diperbaiki)
   observeEvent(input$btn_do_upload, {
     req(user_session$logged_in)
     req(input$file_input_premium)
@@ -715,9 +866,11 @@ server <- function(input, output, session) {
       # decide cost
       if (user$role != "admin") {
         if (user$uploads_used < FREE_UPLOADS) {
+          # Transaksi 1: Gratis
           increment_upload_used(user$email)
           showNotification("Upload diterima (gratis).", type = "message")
         } else {
+          # Transaksi 2: Berbayar (menggunakan Stars)
           if (user$stars >= 1) {
             ok <- update_user_stars(user$email, -1)
             if (!ok) { showNotification("Gagal mengurangi bintang.", type = "error"); return() }
@@ -732,7 +885,7 @@ server <- function(input, output, session) {
         showNotification("Admin: upload diterima tanpa konsumsi.", type = "message")
       }
       
-      # read file safely and validate
+      # ... (Proses baca file dan validasi data) ...
       fp <- input$file_input_premium$datapath
       nm <- input$file_input_premium$name
       ext <- tools::file_ext(nm)
@@ -750,7 +903,6 @@ server <- function(input, output, session) {
         return()
       }
       
-      # Data processing (rename columns for analysis)
       col_merk <- detect_col(df, c("merk","brand","merek"))
       col_type <- detect_col(df, c("type","tipe"))
       col_harga <- detect_col(df, c("harga","price","total","amount","nominal","jumlah"))
@@ -758,13 +910,10 @@ server <- function(input, output, session) {
       df <- safe_rename(df, col_type, "Type")
       df <- safe_rename(df, col_harga, "Harga")
       
-      # Tambahkan cek validitas data KRITIS setelah rename
-      
       kolom_wajib_ada <- c("Merk", "Harga")
       if (!all(kolom_wajib_ada %in% names(df))) {
-        # Jika kolom wajib tidak ditemukan, tampilkan error dan JANGAN simpan data
         missing_cols <- setdiff(kolom_wajib_ada, names(df))
-        rv$data <- NULL # Pastikan data kosong
+        rv$data <- NULL 
         showNotification(
           paste("Gagal: Kolom wajib tidak ditemukan:", paste(missing_cols, collapse=", ")),
           type = "error", 
@@ -773,16 +922,14 @@ server <- function(input, output, session) {
         return() 
       }
       
-      # Konversi Harga setelah memastikan kolom ada
       df$Harga <- suppressWarnings(as.numeric(df$Harga))
       
       rv$data <- df
       
-      # refresh status UIs
-      output$status_card_ui <- renderUI({ status_card_ui_func() })
-      output$summary_ui <- renderUI({ summary_ui_func() })
+      # PENTING: Pemicu pembaruan status akun
+      rv$user_update_trigger <- rv$user_update_trigger + 1 
       
-      showNotification("Data berhasil di-*upload* dan diproses! Lihat tab Analisis Penjualan.", type = "message")
+      showNotification("Data berhasil di-*upload* dan diproses!", type = "message")
       
     })
   })
@@ -810,7 +957,7 @@ server <- function(input, output, session) {
   
   dt_class <- reactive({ if(isTRUE(sel$side_dark)) "cell-border stripe table-dark" else "stripe hover compact" })
   
-  # refresh data handler (hanya refresh tampilan, data dari rv$data)
+  # refresh data handler
   observeEvent(input$refresh_data, { 
     req(rv$data) 
     waiter_show(html = tagList(tags$h4("Memuat ulang data...")), color = "#ffffff")
@@ -844,6 +991,13 @@ server <- function(input, output, session) {
     valueBox(value=val, subtitle="Jumlah Type", icon=icon("list"), color="success")
   })
   
+  # --- Total Nilai Penjualan ---
+  output$vbox_total_sales <- renderValueBox({
+    df <- dataAnalisis()
+    val <- if(!is.null(df) && "Harga" %in% names(df)) sum(df$Harga, na.rm=TRUE) else 0
+    valueBox(value=format_rupiah(val), subtitle="Total Nilai Penjualan", icon=icon("hand-holding-usd"), color="danger")
+  })
+  
   output$vbox_avg_harga <- renderValueBox({
     df <- dataAnalisis()
     val <- if(!is.null(df) && "Harga" %in% names(df)) mean(df$Harga, na.rm=TRUE) else 0
@@ -851,7 +1005,6 @@ server <- function(input, output, session) {
   })
   
   # -------- Tabel & Plot --------
-  # PERBAIKAN UTAMA: Sentralisasi logic tampilan data
   output$tabelData <- renderDT({
     df <- dataAnalisis()
     
@@ -936,18 +1089,62 @@ server <- function(input, output, session) {
     renderPlotlyGrafik(data_plot, "Type", "total_unit", input$pilih_grafik_type, paste("Total Unit per Type -", merk_sel))
   })
   
+  # --- Box Plot Harga per Merk ---
+  output$boxPlotHarga <- renderPlotly({
+    df <- dataAnalisis()
+    req(df)
+    
+    if (!all(c("Merk", "Harga") %in% names(df))) {
+      return(plot_ly() %>% layout(title = "Data tidak lengkap untuk Box Plot (Perlu kolom Merk dan Harga)"))
+    }
+    
+    df$Merk <- factor(df$Merk)
+    
+    p <- plot_ly(
+      data = df,
+      y = ~Harga,
+      color = ~Merk, 
+      type = "box", 
+      boxpoints = "outliers", 
+      name = ~Merk
+    ) %>%
+      layout(
+        title = "Distribusi Harga Jual per Merk",
+        yaxis = list(
+          title = "Harga (Rupiah)",
+          tickformat = ",.0f"
+        ),
+        xaxis = list(title = "Merk"),
+        showlegend = FALSE,
+        margin = list(b = 100)
+      ) %>%
+      config(displayModeBar = "hover", displaylogo = FALSE)
+    
+    return(p)
+  })
+  # -----------------------------
+  
   output$comparisonMerk <- renderPlotly({
     df <- dataAnalisis(); req(df)
     data_plot <- df %>% group_by(Merk) %>% summarise(total_unit=n(), .groups="drop") %>% arrange(desc(total_unit)) %>% head(5)
     renderPlotlyGrafik(data_plot, "Merk", "total_unit", input$pilih_grafik_top5, "Top 5 Merk Terlaris")
   })
   
+  # --- PERBAIKAN: Menggunakan input$pilih_grafik_top5 untuk Type Comparison ---
   output$comparisonType <- renderPlotly({
     df <- dataAnalisis(); req(df)
     merk_sel <- input$pilihMerk; req(merk_sel)
     data_plot <- df %>% filter(Merk==merk_sel) %>% group_by(Type) %>% summarise(total_unit=n(), .groups="drop") %>% arrange(desc(total_unit)) %>% head(5)
-    renderPlotlyGrafik(data_plot, "Type", "total_unit", "bar", paste("Top 5 Type -", merk_sel))
+    
+    renderPlotlyGrafik(
+      data_plot, 
+      "Type", 
+      "total_unit", 
+      input$pilih_grafik_top5, # <-- Perbaikan di sini
+      paste("Top 5 Type -", merk_sel)
+    )
   })
+  # --------------------------------------------------------------------------
   
   
   # -----------------------
@@ -955,14 +1152,12 @@ server <- function(input, output, session) {
   # -----------------------
   output$admin_users_dt <- renderDT({ datatable(data.frame(Msg = "Hanya admin dapat melihat tabel ini"), options = list(dom = 't')) })
   
-  # if admin logged in, render full table
   observe({
     if (user_session$logged_in && identical(user_session$role, "admin")) {
       output$admin_users_dt <- renderDT({ datatable(fetch_all_users(), selection = "single", options = list(pageLength = 10, scrollX = TRUE)) })
     }
   })
   
-  # search by email
   observeEvent(input$admin_search_btn, {
     req(user_session$logged_in)
     if (!identical(user_session$role, "admin")) { showNotification("Hanya admin dapat melakukan aksi ini.", type = "error"); return() }
@@ -985,7 +1180,6 @@ server <- function(input, output, session) {
     }
   })
   
-  # when admin selects row in table
   observeEvent(input$admin_users_dt_rows_selected, {
     sel_row <- input$admin_users_dt_rows_selected
     if (length(sel_row) == 0) return()
@@ -1000,7 +1194,6 @@ server <- function(input, output, session) {
     })
   })
   
-  # admin apply stars
   observeEvent(input$admin_apply_btn, {
     req(user_session$logged_in)
     if (!identical(user_session$role, "admin")) { showNotification("Hanya admin.", type = "error"); return() }
@@ -1022,27 +1215,25 @@ server <- function(input, output, session) {
                 tags$p(strong("Stars: "), tags$span(style = "color:#d97706; font-weight:700;", user$stars)),
                 tags$p(strong("Uploads used: "), user$uploads_used))
       })
+      # Pemicu pembaruan UI
+      rv$user_update_trigger <- rv$user_update_trigger + 1 
     } else {
       showNotification("Gagal mengubah bintang (mungkin akan menjadi negatif).", type = "error")
     }
   })
   
-  # admin delete user
   observeEvent(input$admin_delete_btn, {
     req(user_session$logged_in)
     
-    # 1. Cek Admin Role
     if (!identical(user_session$role, "admin")) { 
       showNotification("Hanya admin dapat melakukan aksi ini.", type = "error"); return() 
     }
     
-    # 2. Tentukan target user
     target <- rv$admin_selected_email %||% trimws(input$admin_search_email %||% "")
     if (is.null(target) || target == "") { 
       showNotification("Pilih atau cari user terlebih dahulu.", type = "warning"); return() 
     }
     
-    # 3. Konfirmasi sebelum hapus (opsional, tapi disarankan)
     showModal(modalDialog(
       title = "Konfirmasi Penghapusan",
       paste("Apakah Anda yakin ingin menghapus user:", target, "? Aksi ini tidak dapat dibatalkan."),
@@ -1053,7 +1244,6 @@ server <- function(input, output, session) {
     ))
   })
   
-  # Logika penghapusan setelah konfirmasi
   observeEvent(input$confirm_delete_user, {
     removeModal()
     target <- rv$admin_selected_email %||% trimws(input$admin_search_email %||% "")
@@ -1062,7 +1252,6 @@ server <- function(input, output, session) {
       showNotification("Target tidak valid.", type = "error"); return()
     }
     
-    # Panggil fungsi penghapusan dengan safety check
     result <- delete_user_by_email(target)
     
     if (result == "Success") {
@@ -1070,10 +1259,10 @@ server <- function(input, output, session) {
       output$admin_log <- renderText({ paste0(logmsg, "\n\nOperation successful.") })
       showNotification(paste("User", target, "berhasil dihapus."), type = "message")
       
-      # Reset tampilan dan refresh tabel admin
       rv$admin_selected_email <- NULL
       output$admin_selected_ui <- renderUI({ tags$p("User berhasil dihapus.") })
       output$admin_users_dt <- renderDT({ datatable(fetch_all_users(), selection = "single", options = list(pageLength = 10, scrollX = TRUE)) })
+      rv$user_update_trigger <- rv$user_update_trigger + 1 
       
     } else if (result == "Cannot delete admin account") {
       showNotification("Gagal: Admin tidak dapat menghapus sesama akun admin.", type = "error")

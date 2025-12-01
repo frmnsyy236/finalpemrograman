@@ -21,7 +21,7 @@ library(rlang)
 # CONFIG
 # -----------------------
 DB_FILE <- "users.sqlite" 
-FREE_UPLOADS <- 10 
+FREE_UPLOADS <- 0 
 APP_TITLE <- "KELOMPOK 2"
 
 # -----------------------
@@ -160,10 +160,10 @@ safe_rename <- function(df, old, new) {
 # Helper: loading HTML (Waiter)
 # -----------------------
 loading_html <- function() {
-  if (file.exists("www/loading.gif")) {
+  if (file.exists("www/loadingfor.gif")) {
     tagList(
       tags$div(style = "display:flex; flex-direction:column; align-items:center; justify-content:center;",
-               tags$img(src = "loading.gif", height = "100px", alt = "loading"),
+               tags$img(src = "loadingfor.gif", height = "100px", alt = "loading"),
                tags$h4("Memuat aplikasi...")
       )
     )
@@ -229,8 +229,18 @@ ui <- bs4DashPage(
   sidebar = bs4DashSidebar(
     skin = "light",
     status = "primary",
+    
+    bs4SidebarUserPanel(
+      image = "foto ke 1.jpg",
+      name = uiOutput("sidebar_user_name")
+    ),
+    
+    div(
+      style = "color:#555; font-size:13px; margin-left:15px; margin-top:-10px; margin-bottom:10px;",
+      uiOutput("sidebar_user_stars")
+    ),
+    
     bs4SidebarMenu(
-      
       bs4SidebarHeader("MENU UTAMA"),
       bs4SidebarMenuItem("Dashboard", tabName = "dashboard", icon = icon("home")),
       
@@ -240,7 +250,8 @@ ui <- bs4DashPage(
       bs4SidebarHeader("LAINNYA"),
       bs4SidebarMenuItem("Profile Team", tabName = "team", icon = icon("users")),
       
-      uiOutput("admin_panel_menu_ui") 
+      # <<< KOMA DI SINI WAJIB >>>
+      uiOutput("admin_panel_menu_ui")
     )
   ),
   
@@ -275,11 +286,32 @@ ui <- bs4DashPage(
     
     tags$head(
       tags$style(HTML("
-        .top-actions { text-align: right; margin-bottom: 10px; }
-        .status-box h3 { margin: 0; font-size: 1.1rem; }
-        .muted { color:#6b7280; font-size:13px; }
-        .admin-input { margin-bottom: 8px; }
-        .btn-download { margin-right: 8px; }
+    /* Warna tulisan di DT saat dark mode */
+    .dark-mode .dataTable,
+    .dark-mode .dataTables_info,
+    .dark-mode .dataTables_filter label,
+    .dark-mode .dataTables_length label,
+    .dark-mode .dataTables_paginate a {
+      color: #ffffff !important;
+    }
+
+    /* Sel tabel */
+    .dark-mode table.dataTable tbody td {
+      color: #ffffff !important;
+    }
+
+    /* Header tabel */
+    .dark-mode table.dataTable thead th {
+      color: #ffffff !important;
+    }
+
+    /* Search input dan dropdown */
+    .dark-mode .dataTables_filter input,
+    .dark-mode .dataTables_length select {
+      background-color: #2f2f2f !important;
+      color: #ffffff !important;
+      border: 1px solid #555 !important;
+    }
       "))
     ),
     
@@ -289,7 +321,7 @@ ui <- bs4DashPage(
       bs4TabItem(
         tabName = "dashboard",
         fluidRow(
-          bs4Card(width = 12, title = "Status Account", status = "info", solidHeader = TRUE,
+          bs4Card(width = 12, title = "Status Account", status = "primary", solidHeader = TRUE,
                   uiOutput("status_card_ui")
           )
         ),
@@ -297,7 +329,7 @@ ui <- bs4DashPage(
           bs4Card(width = 6, title = "Upload Data Premium", status = "primary", solidHeader = TRUE,
                   uiOutput("upload_ui")
           ),
-          bs4Card(width = 6, title = "Account Summary", status = "success", solidHeader = TRUE,
+          bs4Card(width = 6, title = "Account Summary", status = "primary", solidHeader = TRUE,
                   uiOutput("summary_ui")
           )
         ),
@@ -502,18 +534,18 @@ ui <- bs4DashPage(
                      )),
               column( width = 4,
                       offset = 4,
-                     div(style="text-align:center; padding:20px;",
-                         img(src="foto ke 3.jpg", width="90%", style="margin-bottom:15px;"),
-                         tags$h4("Nur Badilla Zayyan"), 
-                         tags$p("Peran: App Developer"),
-                         
-                         tags$a(
-                           href =  "https://wa.me/6287726993572?text=Halo%20saya%20tertarik%20untuk%20membeli%20stars%20di%20Dashboard%20Penjualan?",
-                           target = "_blank",
-                           class = "btn btn-success btn-sm",
-                           icon("whatsapp"), " Beli Stars (WhatsApp)"
-                         )
-                     ))
+                      div(style="text-align:center; padding:20px;",
+                          img(src="foto ke 3.jpg", width="90%", style="margin-bottom:15px;"),
+                          tags$h4("Nur Badilla Zayyan"), 
+                          tags$p("Peran: App Developer"),
+                          
+                          tags$a(
+                            href =  "https://wa.me/6287726993572?text=Halo%20saya%20tertarik%20untuk%20membeli%20stars%20di%20Dashboard%20Penjualan?",
+                            target = "_blank",
+                            class = "btn btn-success btn-sm",
+                            icon("whatsapp"), " Beli Stars (WhatsApp)"
+                          )
+                      ))
             )
           )
         )
@@ -546,6 +578,17 @@ server <- function(input, output, session) {
     } else {
       NULL
     }
+  })
+  # === RENDER UNTUK SIDEBAR ===
+  output$sidebar_user_name <- renderUI({
+    req(user_session$logged_in)
+    user_session$email
+  })
+  
+  output$sidebar_user_stars <- renderUI({
+    req(user_session$logged_in)
+    user <- get_user_by_email(user_session$email)
+    paste("Stars:", user$stars)
   })
   # --- DATA PENJUALAN (letakkan di bagian ini) ---
   data_sales <- reactive({
@@ -809,10 +852,58 @@ server <- function(input, output, session) {
     }
     if (disable_upload) {
       tagList(
-        tags$p("Anda telah menggunakan 3 upload gratis dan saldo bintang habis."),
-        actionButton("btn_contact_admin", "Hubungi Admin", class = "btn-warning")
+        tags$h4("Akses Upload Terkunci"),
+        tags$p("Anda sudah menggunakan 3 upload gratis dan saldo bintang Anda habis."),
+        tags$p("Silakan beli paket premium untuk melanjutkan."),
+        
+        tags$h4("Harga Paket Premium"),
+        tags$ul(
+          tags$li("Paket Premium 1 Bulan — Rp 15.000"),
+          tags$li("Paket Premium 3 Bulan — Rp 35.000"),
+          tags$li("Paket Premium 1 Tahun — Rp 100.000")
+        ),
+        
+        
+        tags$hr(),
+        
+        # Metode Pembayaran
+        tags$div(
+          tags$h5("Metode Pembayaran:"),
+          style = "margin-bottom:10px;"
+        ),
+        
+        # DANA
+        tags$div(
+          tags$img(src = "dana.jpg", 
+                   width = "50px", style="vertical-align:middle; margin-right:10px;"),
+          tags$span("DANA: 0877-2699-3572 (Firman)"),
+          style = "margin-bottom:8px;"
+        ),
+        
+        # OVO
+        tags$div(
+          tags$img(src = "ovo.jpg", 
+                   width = "50px", style="vertical-align:middle; margin-right:10px;"),
+          tags$span("OVO: 0877-2699-3572"),
+          style = "margin-bottom:8px;"
+        ),
+        
+        # QRIS
+        tags$div(
+          tags$img(src = "qris.jpg", 
+                   width = "50px", style="vertical-align:middle; margin-right:10px;"),
+          tags$span("Scan QRIS berikut untuk pembayaran:"),
+          tags$br(),
+          tags$a(
+            href = "https://wa.me/6287726993572?text=Halo,%20saya%20ingin%20beli%20Premium%20Upload.%20Ada%20paket%20apa%20saja?",
+            target = "_blank",
+            class = "btn btn-success btn-sm",
+            icon("whatsapp"), " Konfirmasi via WhatsApp"
+          )
+        )
       )
-    } else {
+    }
+    else {
       tagList(
         fileInput("file_input_premium", "Pilih file (CSV / XLSX)", accept = c(".csv", ".xlsx", ".xls")),
         actionButton("btn_do_upload", "Upload & Proses", class = "btn-primary"),
@@ -904,7 +995,7 @@ server <- function(input, output, session) {
       # PENTING: Pemicu pembaruan status akun
       rv$user_update_trigger <- rv$user_update_trigger + 1 
       
-      showNotification("Data berhasil di-*upload* dan diproses! Lihat tab Analisis Penjualan.", type = "message")
+      showNotification("Data berhasil di-*upload* dan diproses!", type = "message")
       
     })
   })
